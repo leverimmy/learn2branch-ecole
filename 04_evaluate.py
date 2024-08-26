@@ -101,7 +101,7 @@ if __name__ == "__main__":
                 if policy['name'] == 'supervised':
                     model.load_state_dict(torch.load(f"model/{args.problem}/{policy['seed']}/train_params.pkl"))
                 else:
-                    raise Exception(f"Unrecognized GNN policy {policy[name]}")
+                    raise Exception(f"Unrecognized GNN policy {policy['name']}")
                 loaded_models[policy['name']] = model
 
             policy['model'] = loaded_models[policy['name']]
