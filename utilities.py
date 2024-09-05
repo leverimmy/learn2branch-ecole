@@ -1,11 +1,13 @@
 import gzip
 import pickle
 import datetime
+import ecole
 import numpy as np
 
 import torch
 import torch.nn.functional as F
 import torch_geometric
+
 
 def log(str, logfile=None):
     str = f'[{datetime.datetime.now()}] {str}'
@@ -94,3 +96,52 @@ class Scheduler(torch.optim.lr_scheduler.ReduceLROnPlateau):
             self._reduce_lr(self.last_epoch)
 
         self._last_lr = [group['lr'] for group in self.optimizer.param_groups]
+
+
+class NodeTripartite(ecole.observation.NodeBipartite):
+    def extract(self, model, done):
+        # 调用父类的 extract 方法获取二部图信息
+        observation = super().extract(model, done)
+
+        # 解构得到的二部图信息
+        row_features = observation.row_features
+        variable_features = observation.variable_features
+        edge_features = observation.edge_features
+        
+        # print(f'[原来]indices size = {len(edge_features.indices)}\nvalues size = {len(edge_features.values)}')
+        # print(edge_features.indices)
+        # print(edge_features.values)
+
+        # 添加目标节点特征
+        objective_feature = variable_features[-1] # 定义目标节点的特征
+        num_variables = variable_features.shape[0]
+        num_constraints = row_features.shape[0]
+        objective_index = num_variables + num_constraints
+
+        # 将目标节点特征加入变量特征
+        variable_features = np.vstack([variable_features, objective_feature])
+
+        # 创建新的边索引，将目标节点连接到所有其他节点
+        new_edges = []
+        
+        # 连接目标节点到所有变量节点
+        for i in range(num_variables):
+            new_edges.append([objective_index, i])
+            new_edges.append([i, objective_index])
+
+        # 连接目标节点到所有约束节点
+        for i in range(num_constraints):
+            constraint_node_index = num_variables + i
+            new_edges.append([objective_index, constraint_node_index])
+            new_edges.append([constraint_node_index, objective_index])
+
+        # 合并现有边和新的边
+        new_edge_indices = np.array(new_edges).T
+        edge_features.indices = np.hstack([edge_features.indices, new_edge_indices])
+        
+        # print(f'[现在]indices size = {len(edge_features.indices)}\nvalues size = {len(edge_features.values)}')
+        # print(edge_features.indices)
+        # print(edge_features.values)
+
+        # 返回新的三部图观察
+        return row_features, edge_features, variable_features

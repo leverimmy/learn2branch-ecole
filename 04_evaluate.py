@@ -10,6 +10,8 @@ import pickle
 import ecole
 import pyscipopt
 
+from utilities import NodeTripartite
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -22,7 +24,7 @@ if __name__ == "__main__":
         '-g', '--gpu',
         help='CUDA GPU id (-1 for CPU).',
         type=int,
-        default=0,
+        default=1,
     )
     args = parser.parse_args()
 
@@ -35,8 +37,8 @@ if __name__ == "__main__":
 
     if args.problem == 'setcover':
         instances += [{'type': 'small', 'path': f"data/instances/setcover/transfer_500r_1000c_0.05d/instance_{i+1}.lp"} for i in range(20)]
-        instances += [{'type': 'medium', 'path': f"data/instances/setcover/transfer_1000r_1000c_0.05d/instance_{i+1}.lp"} for i in range(20)]
-        instances += [{'type': 'big', 'path': f"data/instances/setcover/transfer_2000r_1000c_0.05d/instance_{i+1}.lp"} for i in range(20)]
+        # instances += [{'type': 'medium', 'path': f"data/instances/setcover/transfer_1000r_1000c_0.05d/instance_{i+1}.lp"} for i in range(20)]
+        # instances += [{'type': 'big', 'path': f"data/instances/setcover/transfer_2000r_1000c_0.05d/instance_{i+1}.lp"} for i in range(20)]
 
     elif args.problem == 'cauctions':
         instances += [{'type': 'small', 'path': f"data/instances/cauctions/transfer_100_500/instance_{i+1}.lp"} for i in range(20)]
@@ -101,7 +103,7 @@ if __name__ == "__main__":
                 if policy['name'] == 'supervised':
                     model.load_state_dict(torch.load(f"model/{args.problem}/{policy['seed']}/train_params.pkl"))
                 else:
-                    raise Exception(f"Unrecognized GNN policy {policy[name]}")
+                    raise Exception(f"Unrecognized GNN policy {policy['name']}")
                 loaded_models[policy['name']] = model
 
             policy['model'] = loaded_models[policy['name']]
@@ -150,7 +152,7 @@ if __name__ == "__main__":
 
                 elif policy['type'] == 'gnn':
                     # Run the GNN policy
-                    env = ecole.environment.Branching(observation_function=ecole.observation.NodeBipartite(),
+                    env = ecole.environment.Branching(observation_function=NodeTripartite(),
                                                       scip_params=scip_parameters)
                     env.seed(policy['seed'])
                     torch.manual_seed(policy['seed'])

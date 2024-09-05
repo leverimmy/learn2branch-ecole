@@ -81,7 +81,7 @@ if __name__ == "__main__":
         '-g', '--gpu',
         help='CUDA GPU id (-1 for CPU).',
         type=int,
-        default=0,
+        default=1,
     )
     args = parser.parse_args()
 
